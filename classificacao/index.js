@@ -7,21 +7,14 @@ const palavraChave = 60;
 
 const funcoes = {
     ClienteCriado: (cliente) => {
-        // cliente.forEach((cliente) => {
-        //     if (livro.idade >= palavraChave) {
-        //         cliente.status = "Prioridade"
-        //     } else{
-        //         cliente.status = "Comum"
-        //     }
-        // })
-
-        cliente.status = cliente.idade.includes(palavraChave) ?"importante" : "comum";
-
-        axios.post('http://localhost:10000/eventos', {
-            tipo: "ClienteClassificado",
+        cliente.status =
+          cliente.idade >= idadePrioritaria ? "Prioritario" : "Comum";
+        axios.post("http://localhost:10000/eventos"),
+          {
+            tipo: "ClienteCriado",
             dados: cliente,
-        });
-    },
+          };
+      },
 
 };
 

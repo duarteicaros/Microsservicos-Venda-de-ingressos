@@ -10,18 +10,16 @@ const funcoes = {
     },
     IngressoCriado: (ingresso) => {
         const ingressos =
-            baseConsulta[ingresso.clienteId]["ingressos"] ||
-
-            [];
+            baseConsulta[ingresso.clienteId]["ingressos"] || [];
 
         ingressos.push(ingresso);
-        baseConsulta[ingresso.clienteId]["ingressos"] =
-
-            ingressos;
+        baseConsulta[ingresso.clienteId]["ingressos"] = ingressos;
 
     },
     ClienteAtualizado: (cliente) => {
-        baseConsulta[cliente.id] = cliente;
+        const clientes = baseConsulta[cliente]["clientes"];
+        const indice = clientes.findIndex((o) => o.id === cliente.id);
+        clientes[indice] = cliente;
     }
 };
 
