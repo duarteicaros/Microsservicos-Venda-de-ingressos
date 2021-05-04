@@ -1,31 +1,28 @@
 const express = require("express");
-const axios = require("axios")
+const axios = require("axios");
+
 const app = express();
 app.use(express.json());
 
-const palavraChave = 60;
-
 const funcoes = {
-    ClienteCriado: (cliente) => {
-        cliente.status =
-          cliente.idade >= idadePrioritaria ? "Prioritario" : "Comum";
-        axios.post("http://localhost:10000/eventos"),
-          {
-            tipo: "ClienteCriado",
-            dados: cliente,
-          };
-      },
-
+  ClienteInserido: async (cliente) => {
+    cliente.status = Number(cliente.idade) >= 60 ? "prioritário" : "comum";
+    await axios.post("http://localhost:10000/eventos", {
+      tipo: "ClienteClassificado",
+      dados: cliente,
+    });
+  },
 };
 
-app.post('/eventos', (req, res) => {
-    try{
-        funcoes[req.body.tipo](req.body.dados);
-    }
-    catch(err){}
-    res.status(200).send({
-        msg: "ok"
-    });
+app.post("/eventos", (request, response) => {
+  try {
+    funcoes[request.body.tipo](request.body.dados);
+  } catch (error) {
+    response.status(400).send("Não foi poassivel criar o ingresso!");
+  }
+  response.status(200);
 });
 
-app.listen(7000, () => console.log("Classificação. Porta 7000"));
+app.listen(7000, () => {
+  console.log("Classificacao porta: 7000");
+});

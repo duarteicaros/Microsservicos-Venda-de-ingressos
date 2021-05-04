@@ -1,56 +1,88 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+const express = require("express");
+const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
 
 const app = express();
-app.use(bodyParser.json());
+app.use(express.json());
+const ingressosPorClienteId = {};
 
-const axios = require('axios');
-
-const ingressosPorClienteID = {};
-const {
-    v4: uuidv4
-} = require('uuid');
-
-app.put('/clientes/:id/ingressos', async (req, res) => {
-    const idIngresso = uuidv4();
-    const ingresso = {
-        descricao: req.body.descricao,
-        quantidade: req.body.quantidade
-    }
-    //req.params dá acesso à lista de parâmetros da URL
-    const ingressoPorCliente =
-        ingressosPorClienteID[req.params.id] || [];
-    ingressoPorCliente.push({
-        id: idIngresso,
-        ingresso
-    });
-    ingressosPorClienteID[req.params.id] =
-        ingressoPorCliente;
-    await axios.post('http://localhost:10000/eventos', {
-        tipo: "IngressoCriado",
-        dados: {
-            id: idIngresso,
-            ingresso,
-            clienteId: req.params.id
-        }
-    })
-    res.status(201).send(ingressoPorCliente);
+app.post("/eventos", (request, response) => {
+  response.status(200);
 });
 
-app.get('/clientes/:id/ingressos', (req, res) => {
-    res.send(ingressosPorClienteID[req.params.id] || []);
+app.post("/clientes/:id/ingressos", async (request, response) => {
+  const id = uuidv4();
+
+  const { descricao, quantidade } = request.body;
+  const ingresso = {
+    id,
+    descricao,
+    quantidade,
+  };
+
+  const ingressosDoCliente = ingressosPorClienteId[request.params.id] || [];
+  ingressosDoCliente.push(ingresso);
+
+  ingressosPorClienteId[request.params.id] = ingressosDoCliente;
+  await axios.post("http://localhost:10000/eventos", {
+    tipo: "IngressoCriado",
+    dados: {
+      id,
+      descricao,
+      quantidade,
+      clienteId: request.params.id,
+    },
+  });
+
+  response.status(201).send(ingressosDoCliente);
 });
 
-app.post("/eventos", (req, res) => {
-    try{
-        funcoes[req.body.tipo](req.body.dados);
-    }
-    catch(err){}
-    res.status(200).send({
-        msg: "ok"
-    });
+app.get("/ingressos", (request, response) => {
+  response.send(ingressosPorClienteId || []);
 });
 
-app.listen(5000, (() => {
-    console.log('Ingressos. Porta 5000');
-}));
+app.get("/clientes/:id/ingressos", (request, response) => {
+  response.send(ingressosPorClienteId[request.params.id] || []);
+});
+
+app.put("/clientes/:id/ingressos", async (request, response) => {
+  const { id, quantidade } = request.body;
+  const ingresso = ingressosPorClienteId[request.params.id].find(
+    (i) => i.id == id
+  );
+
+  if (!ingresso) {
+    return response.status(400).send();
+  }
+
+  ingresso.quantidade = quantidade;
+  await axios.post("http://localhost:10000/eventos", {
+    tipo: "IngressoAtualizado",
+    dados: {
+      id,
+      quantidade,
+      clienteId: request.params.id,
+    },
+  });
+
+  return response.status(200).json(ingresso);
+});
+
+app.delete("/clientes/:id/ingressos", (request, response) => {
+  const { id } = request.body;
+  const ingressoIndex = ingressosPorClienteId[request.params.id].findIndex(
+    (i) => i.id == id
+  );
+
+  if (ingressoIndex < 0) {
+    return response.status(404);
+  }
+
+  ingressosPorClienteId[request.params.id].splice(ingressoIndex, 1);
+
+  return response.status(203);
+});
+
+app.listen(5000, () => {
+  console.log("Ingressos porta 5000");
+});

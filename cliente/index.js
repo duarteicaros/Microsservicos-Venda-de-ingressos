@@ -1,69 +1,95 @@
-const express = require('express');
+const express = require("express");
+const axios = require("axios");
+
 const app = express();
 app.use(express.json());
-const axios = require("axios");
-id = 0;
-const clientes = {};
+const clientes = [];
+contador = -1;
 
 const funcoes = {
-    ClienteClassificado: (cliente) => {
-        // const clientes =
-        //     observacoesPorLembreteId[observacao.lembreteId];
-        // const obsParaAtualizar = observacoes.find(o => o.id === observacao.id)
-        const clienteParaAtualizar = cliente.id;
-
-        clienteParaAtualizar.status = cliente.status;
-        axios.post('http://localhost:10000/eventos', {
-            tipo: "ClienteAtualizado",
-            dados: {
-                id: cliente.id,
-                nome: cliente.nome,
-                endereco: cliente.endereco,
-                idade: cliente.idade,
-                status: cliente.status
-            }
-        });
-    }
-}
-
-
-app.get('/clientes', (req, res) => {
-    res.send(clientes);
-});
-app.put('/clientes', async (req, res) => {
-    id++;
-    const cliente = {
-        nome: req.body.nome,
-        endereco: req.body.endereco,
-        idade: req.body.idade
-    }
-    clientes[id] = {
-        id,
-        cliente,
-        status: 'aguardando classificação'
-    }
+  ClienteClassificado: async (cliente) => {
+    clientes[cliente.id].status = cliente.status;
     await axios.post("http://localhost:10000/eventos", {
-        tipo: "ClienteCriado",
-        dados: {
-            id,
-            cliente,
-            status: 'aguardando classificação'
-        },
-
+      tipo: "ClienteCriado",
+      dados: cliente,
     });
-    res.status(201).send(clientes[id]);
+  },
+};
+
+app.post("/eventos", async (request, response) => {
+  try {
+    await funcoes[request.body.tipo](request.body.dados);
+  } catch (e) {
+    console.log(e);
+  }
+  response.status(200).send("ok");
 });
 
+app.post("/clientes", async (request, response) => {
+  contador++;
+  const { nome, endereco, idade } = request.body;
+  const cliente = {
+    id: contador,
+    nome,
+    endereco,
+    idade,
+    status: "aguardando",
+  };
 
-app.post("/eventos", (req, res) => {
-    try {
-        funcoes[req.body.tipo](req.body.dados);
-    } catch (err) {}
-    res.status(200).send({
-        msg: "ok"
+  clientes.push(cliente);
+
+  await axios
+    .post("http://localhost:10000/eventos", {
+      tipo: "ClienteInserido",
+      dados: {
+        id: contador,
+        nome,
+        endereco,
+        idade,
+        status: "aguardando",
+      },
+    })
+    .then((response) => {
+      console.log(response.data);
+    })
+    .catch((error) => {
+      console.log(error);
     });
+  return response.status(201).send("Cliente created!");
+});
+
+app.get("/clientes", (request, response) => {
+  response.send(clientes);
+});
+
+app.put("/clientes", async (request, response) => {
+  const { id, nome, endereco, idade } = request.body;
+  const cliente = clientes.find((c) => c.id == id);
+
+  if (!cliente) {
+    return response.status(400).send();
+  }
+
+  cliente.nome = nome;
+  cliente.endereco = endereco;
+  cliente.idade = idade;
+
+  return response.status(200).json(cliente);
+});
+
+app.delete("/clientes/:id", (request, response) => {
+  const { id } = request.params;
+  const clienteIndex = clientes.findIndex((c) => c.id == id);
+
+  if (clienteIndex < 0) {
+    return response.status(404).send();
+  }
+
+  clientes.splice(clienteIndex, 1);
+
+  return response.status(203).send("");
 });
 
 app.listen(4000, () => {
-    console.log('Clientes. Porta 4000');
+  console.log("Clientes porta 4000");
 });
