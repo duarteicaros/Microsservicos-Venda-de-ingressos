@@ -38,8 +38,10 @@ app.post("/eventos", (req, res) => {
     .catch((error) => {
       console.log(error);
     });
-  res.status(200).send({ msg: "ok" });
-});
+  res.status(200).send({
+    msg: "ok"
+  });
+
   //envia o evento para o microsserviço de Classificacao
   axios
     .post("http://localhost:7000/eventos", evento)
@@ -49,6 +51,7 @@ app.post("/eventos", (req, res) => {
     .catch((error) => {
       console.log(error);
     });
+});
 app.get("/eventos", (req, res) => {
   res.send(eventos);
 });
